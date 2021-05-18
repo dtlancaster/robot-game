@@ -1,3 +1,3 @@
 class Robot:
-    def act(self, game):
+    def act(self, _):
         return ['guard']

@@ -3,13 +3,13 @@ from __future__ import division
 from __future__ import print_function
 
 import ast
-import Tkinter
+import tkinter
 import sys
 import os.path
 
 from rgkit.settings import settings
 
-BLOCKSIZE = 20
+BLOCK_SIZE = 20
 PADDING = 4
 
 color_mapping = {
@@ -55,14 +55,20 @@ class MapEditor(object):
         self._blocksize = blocksize
         self._padding = padding
         self._map_file = map_file
+        self._canvas = None
+        self._rect_items = None
+        self._colors = None
+        self._pressed = None
+        self._bar = None
+        self._current_color = None
         self.make_canvas()
 
     def make_canvas(self):
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         size = (self._blocksize + self._padding) * settings.board_size + \
             self._padding * 2 + 40
 
-        self._canvas = Tkinter.Canvas(root, width=size, height=size)
+        self._canvas = tkinter.Canvas(root, width=size, height=size)
         self._rect_items = []
         self._colors = []
         self._pressed = False
@@ -105,10 +111,11 @@ class MapEditor(object):
             raise Exception('must supply either tk_event or item_id')
 
         if item_id is None:
+            # noinspection PyBroadException
             try:
                 widget = tk_event.widget.find_closest(tk_event.x, tk_event.y)
                 item_id = widget[0] - 1
-            except:
+            except Exception:
                 return
 
         if 0 <= item_id < len(self._rect_items):
@@ -198,9 +205,10 @@ class MapEditor(object):
 
 def main():
     if len(sys.argv) > 1:
-        MapEditor(BLOCKSIZE, PADDING, sys.argv[1])
+        MapEditor(BLOCK_SIZE, PADDING, sys.argv[1])
     else:
         print_instructions()
+
 
 if __name__ == '__main__':
     main()

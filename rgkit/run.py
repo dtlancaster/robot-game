@@ -5,7 +5,8 @@ import argparse
 from argparse import RawTextHelpFormatter
 import ast
 import copy
-import imp
+# import imp
+import importlib
 import inspect
 import pkg_resources
 import random
@@ -14,13 +15,14 @@ import sys
 import time
 
 try:
-    imp.find_module('rgkit')
+    # imp.find_module('rgkit')
+    importlib.import_module('rgkit')
 except ImportError:
     # force rgkit to appear as a module when run from current directory
     from os.path import dirname, abspath
-    cdir = dirname(abspath(inspect.getfile(inspect.currentframe())))
-    parentdir = dirname(cdir)
-    sys.path.insert(0, parentdir)
+    current_dir = dirname(abspath(inspect.getfile(inspect.currentframe())))
+    parent_dir = dirname(current_dir)
+    sys.path.insert(0, parent_dir)
 
 from rgkit.settings import settings as default_settings
 from rgkit import game
@@ -147,9 +149,9 @@ class Runner(object):
     def default_settings():
         return default_settings
 
-    def game(self, record_turns=False, unit_testing=False):
-        return game.Game(self._players, record_turns=record_turns,
-                         unit_testing=unit_testing)
+    def game(self, record_actions=False, print_info=False):
+        return game.Game(self._players, record_actions=record_actions,
+                         print_info=print_info)
 
     def run(self):
         scores = []
@@ -197,14 +199,13 @@ class Runner(object):
             # this way, people who don't have tkinter can still
             # run headless
             from rgkit.render import render
-
-        g.run_all_turns()
-
-        if not self.options.headless and not self.options.curses:
+            g.run_all_turns()
             # print "rendering %s animations" % ("with"
             #                                    if animate_render
             #                                    else "without")
             render.Render(g, self.options.animate_render, names=self._names)
+        else:
+            g.run_all_turns()
 
         # TODO: Displaying multiple games using curses is still a little bit
         # buggy but at least it doesn't completely screw up the state of the
@@ -226,7 +227,8 @@ class Runner(object):
     def is_multiprocessing_supported():
         is_multiprocessing_supported = True
         try:
-            imp.find_module('multiprocessing')
+            # imp.find_module('multiprocessing')
+            importlib.import_module('multiprocessing')
         except ImportError:
             # the OS does not support it. See http://bugs.python.org/issue3770
             is_multiprocessing_supported = False
@@ -282,11 +284,12 @@ def get_arg_parser():
     parser.add_argument("-A", "--animate", action="store_true",
                         default=False,
                         help="Enable animations in rendering.")
+    # noinspection SpellCheckingInspection
     parser.add_argument(
         "-q", "--quiet", action="count", default=0, help="""Quiet execution.
 -q : suppresses bot stdout
 -qq: suppresses bot stdout and stderr
--qqq: supresses all rgkit and bot output
+-qqq: suppresses all rgkit and bot output
 -qqqq: final summary only""")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-H", "--headless", action="store_true",
@@ -301,7 +304,7 @@ def get_arg_parser():
                        help="Display game in command line using curses.")
     parser.add_argument("--game-seed",
                         default=random.randint(0, default_settings.max_seed),
-                        help="Appended with game countfor per-match seeds.")
+                        help="Appended with game count for per-match seeds.")
     parser.add_argument(
         "--match-seeds", nargs='*',
         help="Used for random seed of the first matches in order.")
@@ -313,11 +316,12 @@ def get_arg_parser():
                         help="Print heatmap after playing a number of games.")
     parser.add_argument("-s", "--start", type=int, default=0,
                         help="Starting index of matches, useful for resuming.")
+    # noinspection PyBroadException
     try:
         os.nice(0)
         parser.add_argument("--nice", type=int, default=5,
                             help="Value for os.nice to lower runner priority.")
-    except:
+    except Exception:
         # Not available on this platform, no need to add the option.
         pass
 
@@ -346,7 +350,7 @@ def print_score_grid(scores, player1, player2, size):
         else:
             sys.stdout.write(" " + str(n))
 
-    grid = [[0 for c in range(size)] for r in range(size)]
+    grid = [[0 for _ in range(size)] for _ in range(size)]
 
     for s1, s2 in scores:
         grid[to_grid(s1)][to_grid(s2)] += 1

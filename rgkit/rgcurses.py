@@ -98,12 +98,14 @@ Cursor right    d, <right>"""
 
     def run(self):
         # TODO: handle off-screen draws gracefully, instead of try-catch
+        # noinspection PyBroadException
         try:
             cs.wrapper(self._main)
-        except:
+        except Exception:
             pass
 
-    def _grid_num_to_str(self, n):
+    @staticmethod
+    def _grid_num_to_str(n):
         if -9 <= n <= -1:
             return str(n)
         elif 0 <= n <= 9:
@@ -120,7 +122,7 @@ Cursor right    d, <right>"""
             attr = self._attr_empty
         r = self._game_grid_pos[0] + 2 * r
         c = self._game_grid_pos[1] + c
-        self._stdscr.addstr(c, r, '  ', attr)
+        self._standard_screen.addstr(c, r, '  ', attr)
 
     def _draw_grid_obstacle(self, r, c):
         if [r, c] == self._selected:
@@ -135,7 +137,7 @@ Cursor right    d, <right>"""
             show_str = '  '
         r = self._game_grid_pos[0] + 2 * r
         c = self._game_grid_pos[1] + c
-        self._stdscr.addstr(c, r, show_str, attr)
+        self._standard_screen.addstr(c, r, show_str, attr)
 
     def _draw_grid_bot1(self, r, c, hp):
         if [r, c] == self._selected:
@@ -145,7 +147,7 @@ Cursor right    d, <right>"""
         r = self._game_grid_pos[0] + 2 * r
         c = self._game_grid_pos[1] + c
         show_str = self._grid_num_to_str(hp)
-        self._stdscr.addstr(c, r, show_str, attr)
+        self._standard_screen.addstr(c, r, show_str, attr)
 
     def _draw_grid_bot2(self, r, c, hp):
         if [r, c] == self._selected:
@@ -155,7 +157,7 @@ Cursor right    d, <right>"""
         r = self._game_grid_pos[0] + 2 * r
         c = self._game_grid_pos[1] + c
         show_str = self._grid_num_to_str(hp)
-        self._stdscr.addstr(c, r, show_str, attr)
+        self._standard_screen.addstr(c, r, show_str, attr)
 
     def _draw_game_grid(self):
         state = self._game.get_state(self._turn)
@@ -175,12 +177,12 @@ Cursor right    d, <right>"""
     def _draw_manual(self):
         r, c = self._manual_pos
         for line in self._manual_text.split("\n"):
-            self._stdscr.addstr(r, c, line, self._attr_text)
+            self._standard_screen.addstr(r, c, line, self._attr_text)
             r += 1
 
     def _draw_cell_info(self):
         state = self._game.get_state(self._turn)
-        actions = self._game._actions_on_turn[self._turn]
+        actions = self._game.get_actions_on_turn(self._turn)
         r, c = self._selected
         s = "Selected: " + str((r, c))
         if (r, c) in settings.obstacles:
@@ -196,7 +198,7 @@ Cursor right    d, <right>"""
             s += "\nEmpty"
         r, c = self._cell_info_pos
         for line in s.split("\n"):
-            self._stdscr.addstr(r, c, line, self._attr_text)
+            self._standard_screen.addstr(r, c, line, self._attr_text)
             r += 1
 
     def _draw_score(self):
@@ -207,22 +209,22 @@ Cursor right    d, <right>"""
         r, c = self._score_pos
         if score[0] >= score[1]:
             s = self._names[0]
-            self._stdscr.addstr(r, c, s, self._attr_bot1)
+            self._standard_screen.addstr(r, c, s, self._attr_bot1)
             c += len(s)
             s = " " + str(score[0]) + " : " + str(score[1]) + " "
-            self._stdscr.addstr(r, c, s, self._attr_text)
+            self._standard_screen.addstr(r, c, s, self._attr_text)
             c += len(s)
             s = self._names[1]
-            self._stdscr.addstr(r, c, s, self._attr_bot2)
+            self._standard_screen.addstr(r, c, s, self._attr_bot2)
         else:
             s = self._names[1]
-            self._stdscr.addstr(r, c, s, self._attr_bot2)
+            self._standard_screen.addstr(r, c, s, self._attr_bot2)
             c += len(s)
             s = " " + str(score[1]) + " : " + str(score[0]) + " "
-            self._stdscr.addstr(r, c, s, self._attr_text)
+            self._standard_screen.addstr(r, c, s, self._attr_text)
             c += len(s)
             s = self._names[0]
-            self._stdscr.addstr(r, c, s, self._attr_bot1)
+            self._standard_screen.addstr(r, c, s, self._attr_bot1)
 
     def _draw_final_score(self):
         state = self._game.get_state(settings.max_turns)
@@ -232,24 +234,24 @@ Cursor right    d, <right>"""
         r, c = self._final_score_pos
         if score[0] > score[1]:
             s = self._names[0]
-            self._stdscr.addstr(r, c, s, self._attr_bot1)
+            self._standard_screen.addstr(r, c, s, self._attr_bot1)
             c += len(s)
             s = " won: " + str(score[0]) + " : " + str(score[1])
-            self._stdscr.addstr(r, c, s, self._attr_text)
+            self._standard_screen.addstr(r, c, s, self._attr_text)
         elif score[1] > score[0]:
             s = self._names[1]
-            self._stdscr.addstr(r, c, s, self._attr_bot2)
+            self._standard_screen.addstr(r, c, s, self._attr_bot2)
             c += len(s)
             s = " won: " + str(score[1]) + " : " + str(score[0])
-            self._stdscr.addstr(r, c, s, self._attr_text)
+            self._standard_screen.addstr(r, c, s, self._attr_text)
         else:
             s = "Tie game: " + str(score[0]) + " : " + str(score[1])
-            self._stdscr.addstr(r, c, s, self._attr_text)
+            self._standard_screen.addstr(r, c, s, self._attr_text)
 
     def _draw_turn(self):
         r, c = self._turn_pos
         s = "Turn: " + str(self._turn)
-        self._stdscr.addstr(r, c, s, self._attr_text)
+        self._standard_screen.addstr(r, c, s, self._attr_text)
 
     def _draw_screen(self):
         self._draw_game_grid()
@@ -320,8 +322,8 @@ Cursor right    d, <right>"""
         while not self._done:
             if self._paused:
                 # When paused, block until a key is pressed
-                self._stdscr.timeout(-1)
-                c = self._stdscr.getch()
+                self._standard_screen.timeout(-1)
+                c = self._standard_screen.getch()
                 self._handle_key(c)
             else:
                 # When playing, block until a key a pressed or time to
@@ -332,8 +334,8 @@ Cursor right    d, <right>"""
                 # time difference from the last turn advance, but this may
                 # introduce cross-platform issues due to inconsistencies in
                 # time resolution.
-                self._stdscr.timeout(self._turn_delay)
-                c = self._stdscr.getch()
+                self._standard_screen.timeout(self._turn_delay)
+                c = self._standard_screen.getch()
                 if c == cs.ERR:
                     if not self._increase_turn():
                         self._paused = True
@@ -341,13 +343,13 @@ Cursor right    d, <right>"""
                     self._handle_key(c)
             # TODO: Not every cell need to be cleared. Clearing everything
             #       creates flicker.
-            self._stdscr.clear()
+            self._standard_screen.clear()
             self._draw_screen()
-            self._stdscr.refresh()
+            self._standard_screen.refresh()
 
-    def _main(self, stdscr):
+    def _main(self, standard_screen):
         self._init_curses()
-        self._stdscr = stdscr
+        self._standard_screen = standard_screen
 
         # Start loop
         self._main_loop()

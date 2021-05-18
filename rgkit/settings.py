@@ -7,9 +7,13 @@ class AttrDict(dict):
 class Settings(AttrDict):
     def __init__(self, *args, **kwargs):
         super(Settings, self).__init__(*args, **kwargs)
+        self.spawn_coordinates = None
+        self.obstacles = None
+        self.player_count = None
+        self.start = None
 
     def init_map(self, map_data):
-        self.spawn_coords = map_data['spawn']
+        self.spawn_coordinates = map_data['spawn']
         self.obstacles = map_data['obstacle']
         self.player_count = map_data.get('player_count', 2)
         self.start = map_data.get('start', None)

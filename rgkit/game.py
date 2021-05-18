@@ -1,4 +1,4 @@
-import imp
+import types
 import os
 import random
 import sys
@@ -53,7 +53,8 @@ class Player(object):
         name argument can be used to set robot's name
         """
         self._player_id = None  # must be set using set_player_id
-
+        self._module = None  # define here
+        self._robot = None  # define here
         self._code = code
         if file_name is not None:
             with open(file_name) as f:
@@ -69,7 +70,7 @@ class Player(object):
             self._name = str(robot.__class__).split('.')[-1]
             self._robot = robot
         elif self._code:
-            self._module = imp.new_module('usercode%d' % id(self))
+            self._module = types.ModuleType('user_code%d' % id(self))
             exec(self._code, self._module.__dict__)
             self._robot = self._module.Robot()
         else:
@@ -82,13 +83,13 @@ class Player(object):
     @staticmethod
     def _numeral_types():
         if sys.version_info >= (3, 0):
-            return (int, float)
+            return int, float
         else:
             return (int, long, float)  # noqa
 
     @staticmethod
-    def _validate_type(robot, var_name, obj, types):
-        if type(obj) not in types:
+    def _validate_type(robot, var_name, obj, types_):
+        if type(obj) not in types_:
             raise Exception(
                 "Bot {0}: {1} of type {2} is not valid.".format(
                     robot.robot_id, var_name, type(obj).__name__)
@@ -127,9 +128,9 @@ class Player(object):
                 robot, 'action[1][0]', action[1][0], Player._numeral_types())
             Player._validate_type(
                 robot, 'action[1][1]', action[1][1], Player._numeral_types())
-            valid_locs = rg.locs_around(
+            valid_locations = rg.locs_around(
                 robot.location, filter_out=['invalid', 'obstacle'])
-            if action[1] not in valid_locs:
+            if action[1] not in valid_locations:
                 raise Exception(
                     'Bot {0}: {1} is not a valid action.'.format(
                         robot.robot_id, action)
@@ -138,17 +139,17 @@ class Player(object):
             raise ValueError('Bot %d: action must be one of "guard", '
                              '"suicide", "move", or "attack".')
 
-    def _get_response(self, game_state, game_info, robot, seed):
+    def _get_response(self, game_info, robot, seed):
         """Returns sanitized action, output and error flag from robot"""
+        _stdout = sys.stdout
+        _stderr = sys.stderr
+        captured_output = io.BytesIO()
+        exc_flag = False
+        # noinspection PyBroadException
         try:
-            exc_flag = False
-            captured_output = io.BytesIO()
-
             def conv(s):
                 return s.encode('ascii', 'replace')
 
-            _stdout = sys.stdout
-            _stderr = sys.stderr
             sys.stdout = Tee(sys.stdout, captured_output, conv=conv)
             sys.stderr = Tee(sys.stderr, captured_output, conv=conv)
 
@@ -172,7 +173,7 @@ class Player(object):
             elif action[0] in ('guard', 'suicide'):
                 action = (action[0],)
 
-        except:
+        except Exception:
             exc_flag = True
             traceback.print_exc(file=sys.stderr)
             action = ['guard']
@@ -195,7 +196,7 @@ class Player(object):
             if robot.player_id == self._player_id:
                 # Every act call should get a different random seed
                 actions[loc], outputs[loc] = self._get_response(
-                    game_state, game_info, robot,
+                    game_info, robot,
                     seed=str(seed) + '-' + str(robot.robot_id))
 
         return actions, outputs
@@ -263,13 +264,13 @@ class Game(object):
 
         return actions, outputs
 
-    def _make_history(self, responses, record_output=False):
+    def _make_history(self, responses):  # , record_output=False):
         # todo: rework this. We are getting data about the player
         #       from two sources: 1) from arguments, and 2) from
         #       class members. Either move *all* to 1) and make
         #       static or move all to 2).
 
-        '''
+        """
         An aggregate of all bots and their actions this turn.
 
         Optionally records per-bot output.
@@ -277,7 +278,7 @@ class Game(object):
         Stores a list of each player's bots at the start of this turn and
         the actions they each performed this turn. Newly spawned bots have no
         actions.
-        '''
+        """
         actions, outputs = responses
         robots = []
         for loc, robot in self._state.robots.items():
@@ -296,7 +297,8 @@ class Game(object):
             robots.append(robot_info)
         return robots
 
-    def _calculate_actions_on_turn(self, delta, actions):
+    @staticmethod
+    def _calculate_actions_on_turn(delta, actions):
         actions_on_turn = {}
 
         for delta_info in delta:
@@ -325,9 +327,9 @@ class Game(object):
 
         return actions_on_turn
 
-    def run_turn(self, record_output=False):
+    def run_turn(self):  # , record_output=False):
         if self._print_info:
-            print((' running turn %d ' % (self._state.turn)).center(70, '-'))
+            print((' running turn %d ' % self._state.turn).center(70, '-'))
 
         responses = self._get_robots_responses()
         actions = responses[0]
@@ -347,7 +349,7 @@ class Game(object):
 
         if self._record_history:
             self.history.append(self._make_history(
-                responses, record_output=record_output))
+                responses))  # , record_output=record_output))
 
         self._state = new_state
 

@@ -54,19 +54,19 @@ class GameState(object):
         return loc in self.robots
 
     def _get_spawn_locations_symmetric(self):
-        def symmetric_loc(loc):
-            return (settings.board_size - 1 - loc[0],
-                    settings.board_size - 1 - loc[1])
-        locs1 = []
-        locs2 = []
-        while len(locs1) < settings.spawn_per_player:
-            loc = self._spawn_random.choice(settings.spawn_coords)
-            sloc = symmetric_loc(loc)
-            if loc not in locs1 and loc not in locs2:
-                if sloc not in locs1 and sloc not in locs2:
-                    locs1.append(loc)
-                    locs2.append(sloc)
-        return locs1 + locs2
+        def symmetric_loc(location):
+            return (settings.board_size - 1 - location[0],
+                    settings.board_size - 1 - location[1])
+        locations_1 = []
+        locations_2 = []
+        while len(locations_1) < settings.spawn_per_player:
+            loc = self._spawn_random.choice(settings.spawn_coordinates)
+            sym_loc = symmetric_loc(loc)
+            if loc not in locations_1 and loc not in locations_2:
+                if sym_loc not in locations_1 and sym_loc not in locations_2:
+                    locations_1.append(loc)
+                    locations_2.append(sym_loc)
+        return locations_1 + locations_2
 
     def _get_spawn_locations_random(self):
         # see http://stackoverflow.com/questions/2612648/reservoir-sampling
@@ -74,7 +74,7 @@ class GameState(object):
         per_player = settings.spawn_per_player
         count = per_player * settings.player_count
         n = 0
-        for loc in settings.spawn_coords:
+        for loc in settings.spawn_coordinates:
             n += 1
             if len(locations) < count:
                 locations.append(loc)
@@ -85,7 +85,7 @@ class GameState(object):
         self._spawn_random.shuffle(locations)
         return locations
 
-    def _get_contenders(self, dest):
+    def _get_contenders(self, destination):
         """
         Generates a dict of locations, where the values correspond to the
         set of bots that wish to move into that square or will be moving
@@ -95,7 +95,7 @@ class GameState(object):
         2. the second is blocked because that is his current location
            where he will be staying due to the collision at 1
 
-        :param dest: func(location of robot) = destination of robot
+        :param destination: func(location of robot) = destination of robot
         :returns: dict[destination] = set(locations of bots that either
                                         want to move to 'destination' or
                                         are moving to 'destination'
@@ -103,47 +103,47 @@ class GameState(object):
         """
         contenders = defaultdict(lambda: set())
 
-        def stuck(loc):
+        def stuck(location):
             # Robot at loc is stuck
             # Other robots trying to move in its old locations
             # should be marked as stuck, too
-            old_contenders = contenders[loc]
-            contenders[loc] = set([loc])
+            old_contenders = contenders[location]
+            contenders[location] = {location}
 
             for contender in old_contenders:
-                if contender != loc:
+                if contender != location:
                     stuck(contender)
 
         for loc in self.robots:
-            contenders[dest(loc)].add(loc)
+            contenders[destination(loc)].add(loc)
 
         for loc in self.robots:
-            if len(contenders[dest(loc)]) > 1 or (self.is_robot(dest(loc)) and
-                                                  dest(loc) != loc and
-                                                  dest(dest(loc)) == loc):
+            if len(contenders[destination(loc)]) > 1 or (self.is_robot(destination(loc)) and
+                                                         destination(loc) != loc and
+                                                         destination(destination(loc)) == loc):
                 # Robot at loc is going to fail to move
                 stuck(loc)
 
         return contenders
 
     # new_locations = {loc: new_loc}
-    def _get_new_locations(self, dest, contenders):
+    def _get_new_locations(self, destination, contenders):
         new_locations = {}
 
         for loc in self.robots:
-            if loc != dest(loc) and loc in contenders[loc]:
+            if loc != destination(loc) and loc in contenders[loc]:
                 new_locations[loc] = loc
             else:
-                new_locations[loc] = dest(loc)
+                new_locations[loc] = destination(loc)
 
         return new_locations
 
     # collisions = {loc: set(robots collided with robot at loc)}
-    def _get_collisions(self, dest, contenders):
+    def _get_collisions(self, destination, contenders):
         collisions = defaultdict(lambda: set())
 
         for loc in self.robots:
-            for loc2 in contenders[dest(loc)]:
+            for loc2 in contenders[destination(loc)]:
                 collisions[loc].add(loc2)
                 collisions[loc2].add(loc)
 
@@ -180,7 +180,7 @@ class GameState(object):
     def _apply_spawn(delta, spawn_locations):
         # clear robots on spawn
         for robot_delta in delta:
-            if robot_delta.loc_end in settings.spawn_coords:
+            if robot_delta.loc_end in settings.spawn_coordinates:
                 robot_delta.hp_end = 0
 
         # spawn robots
@@ -209,15 +209,15 @@ class GameState(object):
     def get_delta(self, actions, spawn=True):
         delta = []
 
-        def dest(loc):
-            if actions[loc][0] == 'move':
-                return actions[loc][1]
+        def destination(location):
+            if actions[location][0] == 'move':
+                return actions[location][1]
             else:
-                return loc
+                return location
 
-        contenders = self._get_contenders(dest)
-        new_locations = self._get_new_locations(dest, contenders)
-        collisions = self._get_collisions(dest, contenders)
+        contenders = self._get_contenders(destination)
+        new_locations = self._get_new_locations(destination, contenders)
+        collisions = self._get_collisions(destination, contenders)
         damage_map = self._get_damage_map(actions)
         damage_caused = defaultdict(lambda: 0)  # {loc: damage_caused}
 

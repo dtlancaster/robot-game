@@ -264,7 +264,7 @@ class Render(object):
             self._win.tag_raise(layer)
 
     def draw_text(self, loc, text, color=None):
-        layer_id = 'layer %d' % 9
+        layer_id = 'layer %d' % 3  # This was originally set to layer 9 which causes it to render at layer 0 somehow.
         self._layers[layer_id] = None
         x, y = self.grid_to_xy(loc)
         item = self._win.create_text(
