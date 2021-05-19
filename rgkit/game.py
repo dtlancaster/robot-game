@@ -132,8 +132,8 @@ class Player(object):
                 robot.location, filter_out=['invalid', 'obstacle'])
             if action[1] not in valid_locations:
                 raise Exception(
-                    'Bot {0}: {1} is not a valid action.'.format(
-                        robot.robot_id, action)
+                    'Bot {0} @ {2}: {1} is not a valid action.'.format(
+                        robot.robot_id, action, robot.location)
                 )
         elif action[0] not in ('guard', 'suicide'):
             raise ValueError('Bot %d: action must be one of "guard", '

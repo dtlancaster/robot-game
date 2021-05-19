@@ -77,7 +77,8 @@ class Runner(object):
         if players is None:
             players = []
 
-        self._map_data = ast.literal_eval(open(options.map_filepath).read())
+        with open(options.map_filepath) as fp:
+            self._map_data = ast.literal_eval(fp.read())
         self.settings = settings
         self.settings.init_map(self._map_data)
         # Players can only be initialized from file after initializing settings
@@ -169,7 +170,7 @@ class Runner(object):
             scores.append(result)
             printed.append('{0} - seed: {1}'.format(result, match_seed))
         if self.options.quiet < 4:
-            unmute_all()
+            Muter.unmute_all()
             if printed:
                 print('\n'.join(printed))
         return scores
@@ -328,14 +329,27 @@ def get_arg_parser():
     return parser
 
 
-def mute_all():
-    sys.stdout = game.NullDevice()
-    # sys.stderr = game.NullDevice()
+class Muter:
+    stdout = None
+    stderr = None
 
+    @staticmethod
+    def mute_all():
+        if Muter.stdout is None and Muter.stderr is None:
+            Muter.stdout = sys.stdout
+            sys.stdout = game.NullDevice()
+            # Muter.stderr = sys.stderr
+            # sys.stderr = game.NullDevice()
 
-def unmute_all():
-    sys.stdout = sys.__stdout__
-    # sys.stderr = sys.__stderr__
+    @staticmethod
+    def unmute_all():
+        if Muter.stdout is not None:
+            sys.stdout = Muter.stdout
+            Muter.stdout = None
+
+        if Muter.stderr is not None:
+            sys.stderr = Muter.stderr
+            Muter.stderr = None
 
 
 def print_score_grid(scores, player1, player2, size):
@@ -398,7 +412,7 @@ def main():
     for opponent in args.opponents:
         args.player2 = opponent
         if args.quiet >= 3:
-            mute_all()
+            Muter.mute_all()
         print('Game seed: {0}'.format(args.game_seed))
         if Runner.is_multiprocessing_supported() and args.count > 1:
             runner = run_concurrently
@@ -412,7 +426,7 @@ def main():
         print('{0:6.2f}s per game, {1} games, total {2:.0f}s'.format(
             total_time / args.count, args.count, total_time))
         if args.quiet >= 3:
-            unmute_all()
+            Muter.unmute_all()
         p1won = sum(p1 > p2 for p1, p2 in scores)
         p2won = sum(p2 > p1 for p1, p2 in scores)
         draw = args.count - p1won - p2won
@@ -428,8 +442,8 @@ def main():
         total_diff += diff
         avg_score = list(map(int, avg_score))
         diff = int(diff)
-        print('{:10} - {:15} - {:8} ({})'.format(
-            os.path.basename(opponent)[:10], repr([p1won, p2won, draw]),
+        print('{:20} - {:15} - {:8} ({})'.format(
+            os.path.basename(opponent)[:20], repr([p1won, p2won, draw]),
             repr(avg_score), diff))
 
     if num_opponents > 1:
