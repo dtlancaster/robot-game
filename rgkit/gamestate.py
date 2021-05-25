@@ -253,8 +253,8 @@ class GameState(object):
                         robot_delta.hp_end -= damage
                         damage_caused[actor_loc] += damage
 
-            # account for suicides
-            if actions[loc][0] == 'suicide':
+            # account for suicides and deserters
+            if actions[loc][0] in ('suicide', 'desert'):
                 robot_delta.hp_end = 0
 
             delta.append(robot_delta)

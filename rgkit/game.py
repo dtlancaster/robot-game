@@ -176,7 +176,7 @@ class Player(object):
         except Exception:
             exc_flag = True
             traceback.print_exc(file=sys.stderr)
-            action = ['guard']
+            action = ['desert']
 
         finally:
             sys.stdout = _stdout
